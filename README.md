@@ -22,3 +22,7 @@ ansible-playbook -i ./splunkinv.py playbook.yml
 
 ## Configuration
 
+
+## Requirements
+_requests_ is a non optional requirement.
+Tested with Ansible 2.2.0

@@ -23,10 +23,17 @@ searchquery = 'search index="_internal" | dedup host | fields host'
 if not searchquery.startswith('search'):
     searchquery = 'search ' + searchquery
 
-def splunk_search():
+def splunk_login():
     login = requests.post(SPLUNK_LOGIN, verify=sslverify,
             data={'username': SPLUNK_USER, 'password': SPLUNK_PASSWORD})
-    auth = {'Authorization': 'Splunk %s' % login.json()['sessionKey']}
+
+    if login.status_code == 401:
+        raise Exception('Login failed: %s' % login.json())
+
+    return {'Authorization': 'Splunk %s' % login.json()['sessionKey']}
+
+def splunk_search():
+    auth = splunk_login()
 
     searchjob = requests.post(SPLUNK_JOB, headers=auth,
             data={'search': searchquery}, verify=sslverify)
