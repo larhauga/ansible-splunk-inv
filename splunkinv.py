@@ -14,10 +14,10 @@ SPLUNK_URL='https://splunk01:8089'
 SPLUNK_USER='admin'
 SPLUNK_PASSWORD='changeme'
 
-SPLUNK_LOGIN=SPLUNK_URL + '/services/auth/login?output_mode=json'
-SPLUNK_JOB=SPLUNK_URL + '/services/search/jobs?output_mode=json'
-SPLUNK_STATUS=SPLUNK_URL + '/services/search/jobs/%s/?output_mode=json'
-SPLUNK_RESULT=SPLUNK_URL + '/services/search/jobs/%s/results?output_mode=json&count=0'
+SPLUNK_LOGIN    = SPLUNK_URL + '/services/auth/login?output_mode=json'
+SPLUNK_JOB      = SPLUNK_URL + '/services/search/jobs?output_mode=json'
+SPLUNK_STATUS   = SPLUNK_URL + '/services/search/jobs/%s/?output_mode=json'
+SPLUNK_RESULT   = SPLUNK_URL + '/services/search/jobs/%s/results?output_mode=json&count=0'
 
 searchquery = 'search index="_internal" | dedup host | fields host'
 if not searchquery.startswith('search'):
@@ -32,11 +32,16 @@ def splunk_search():
             data={'search': searchquery}, verify=sslverify)
     sid = searchjob.json()['sid']
 
+    # Wait for 2 minutes and 1200 requests for search to finish.
+    # Spam, bacon, sausage and Spam.
     done = False
-    while not done:
+    limit = 0
+    while not done or limit > 1200:
         status = requests.get(SPLUNK_STATUS % sid, headers=auth, verify=sslverify)
         done = all(x['content']['isDone'] == True for x in status.json()['entry'])
-        sleep(0.1)
+        limit = limit + 1
+        if not done:
+            sleep(0.1)
 
     result = requests.get(SPLUNK_RESULT % sid, headers=auth, verify=sslverify)
     return result.json()['results']
