@@ -5,39 +5,40 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import json
 import requests
+from time import sleep
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-sslverify = True
+sslverify = False
 
-from xml.dom import minidom
-
-SPLUNK_URL='https://searchhead:8089'
+SPLUNK_URL='https://splunk01:8089'
 SPLUNK_USER='admin'
 SPLUNK_PASSWORD='changeme'
+
+SPLUNK_LOGIN=SPLUNK_URL + '/services/auth/login?output_mode=json'
+SPLUNK_JOB=SPLUNK_URL + '/services/search/jobs?output_mode=json'
+SPLUNK_STATUS=SPLUNK_URL + '/services/search/jobs/%s/?output_mode=json'
+SPLUNK_RESULT=SPLUNK_URL + '/services/search/jobs/%s/results?output_mode=json&count=0'
 
 searchquery = 'search index="_internal" | dedup host | fields host'
 if not searchquery.startswith('search'):
     searchquery = 'search ' + searchquery
 
 def splunk_search():
-    r = requests.post(SPLUNK_URL + '/services/auth/login?output_mode=json',
-            data={'username': SPLUNK_USER, 'password': SPLUNK_PASSWORD},
-            verify=sslverify)
-    sessionkey = r.json()['sessionKey']
+    login = requests.post(SPLUNK_LOGIN, verify=sslverify,
+            data={'username': SPLUNK_USER, 'password': SPLUNK_PASSWORD})
+    auth = {'Authorization': 'Splunk %s' % login.json()['sessionKey']}
 
-    searchjob = requests.post(SPLUNK_URL + '/services/search/jobs?output_mode=json',
-            headers={'Authorization': 'Splunk %s' % sessionkey},
+    searchjob = requests.post(SPLUNK_JOB, headers=auth,
             data={'search': searchquery}, verify=sslverify)
     sid = searchjob.json()['sid']
 
     done = False
     while not done:
-        status = requests.get(SPLUNK_URL + '/services/search/jobs/%s/?output_mode=json' % sid,
-                headers={'Authorization': 'Splunk %s' % sessionkey}, verify=sslverify)
+        status = requests.get(SPLUNK_STATUS % sid, headers=auth, verify=sslverify)
         done = all(x['content']['isDone'] == True for x in status.json()['entry'])
+        sleep(0.1)
 
-    result = requests.get(SPLUNK_URL + '/services/search/jobs/%s/results?output_mode=json&count=0' % sid,
-            headers={'Authorization': 'Splunk %s' % sessionkey}, verify=sslverify)
+    result = requests.get(SPLUNK_RESULT % sid, headers=auth, verify=sslverify)
     return result.json()['results']
 
 def inventory(result):

@@ -13,9 +13,12 @@ data outputed from Splunk. Only the host field is used, so use rename.
  dedup hostname | rename hostname as host | fields host
 ```
 
-# How to use
+## How to use
 
 ```
 ansible -i ./splunkinv.py all -m ping 
 ansible-playbook -i ./splunkinv.py playbook.yml
 ```
+
+## Configuration
+
