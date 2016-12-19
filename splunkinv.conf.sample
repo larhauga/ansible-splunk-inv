@@ -1,0 +1,5 @@
+[splunkinv]
+kerberos: false
+url: https://<splunksearchhead>:8089
+user: <username>
+password: <password>
