@@ -109,6 +109,8 @@ def main():
         # searchquery = 'search index="_internal" | dedup host | fields host'
         if not search.startswith('search'):
             searchquery = 'search ' + search
+        else:
+            searchquery = search
 
     result = splunk_search(searchquery)
     print(json.dumps(inventory(result), sort_keys=True, indent=2))
